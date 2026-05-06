@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Analisis Estetika Wajah</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background-color: #e5e5e5;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            overflow-y: scroll; /* <-- TAMBAHKAN INI BIAR GAK GESER KIRI-KANAN */
+        }
+        .container {
+            background-color: #eaeaea;
+            width: 100%;
+            max-width: 1500px;
+            padding: 40px;
+            border: 1px solid #ccc;
+        }
+        .header-title {
+            text-align: left;
+            font-size: 28px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            padding-left: 10px;
+        }
+        .main-content {
+            display: flex;
+            gap: 30px;
+        }
+        .left-panel {
+            flex: 1;
+        }
+        .right-panel {
+            flex: 1.2;
+        }
+        
+        /* Bagian Foto, Kamera, dan Skor Akhir */
+        .top-left {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .image-container {
+            width: 160px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .image-box {
+            width: 100%;
+            height: 160px;
+            border: 2px solid #333;
+            background-color: #fff;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .image-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .image-box video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+            transform: scaleX(-1);
+        }
+        .image-container p {
+            font-weight: bold;
+            font-size: 14px;
+            text-align: center;
+        }
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .btn {
+            background-color: #333;
+            color: #fff;
+            border: none;
+            padding: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 3px;
+        }
+        .btn:hover { background-color: #555; }
+        .btn-red { background-color: #d32f2f; display: none; }
+        .btn-red:hover { background-color: #b71c1c; }
+
+        /* Cari class .score-box milikmu, lalu tambahkan min-width */
+        .score-box {
+            flex: 1;
+            background-color: #f4f4f4;
+            border: 1px solid #999;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 160px; /* Tambahkan ini biar kotaknya ga bisa menyempit */
+        }
+
+        /* Tambahkan aturan ini khusus untuk teks skornya */
+        .score-box h2 {
+            white-space: nowrap; /* Paksa teksnya tetep 1 baris menyamping */
+            margin: 0; 
+        }
+        .score-box h2 span { color: #d32f2f; transition: color 0.3s; }
+        .main-bar-bg { background-color: #d1d5db; height: 25px; width: 100%; border: 1px solid #777; margin-bottom: 10px; }
+        .main-bar-fill { background-color: #d32f2f; height: 100%; width: 0%; transition: width 1s ease-in-out, background-color 0.5s; }
+        .score-box p { font-size: 13px; font-weight: bold; text-transform: uppercase; }
+
+        /* Bagian Skor Kategori */
+        .category-title { font-size: 20px; font-weight: bold; margin-bottom: 15px; }
+        .bar-row { display: flex; align-items: center; margin-bottom: 8px; }
+        .bar-label { width: 170px; text-align: right; padding-right: 15px; font-size: 15px; }
+        .bar-wrapper { flex: 1; background-color: #d1d5db; height: 20px; border: 1px solid #777; }
+        .bar-fill { height: 100%; width: 0%; transition: width 1s ease-in-out, background-color 0.5s; }
+
+        /* Bagian Analisis Objektif */
+        .right-title { font-size: 22px; font-weight: bold; margin-bottom: 10px; }
+        .analysis-list { list-style-type: disc; padding-left: 20px; font-size: 15px; line-height: 1.5; margin-bottom: 25px; }
+        .analysis-list li { margin-bottom: 5px; }
+
+        /* Bagian Ringkasan Statistik */
+        table { width: 100%; border-collapse: collapse; background-color: #f4f4f4; font-size: 14px; }
+        table, th, td { border: 1px solid #333; }
+        td { padding: 8px 10px; }
+        .legend { font-size: 10px; text-align: right; padding: 2px 5px; }
+        .legend span.red { color: #d32f2f; font-weight: bold; }
+        .legend span.orange { color: #f57c00; font-weight: bold; }
+        .legend span.green { color: #388e3c; font-weight: bold; }
+
+        /* --- KELAS KHUSUS TEMA GELAP (UPDATE) --- */
+        body.dark-mode {
+            background-color: #121212 !important;
+            color: #e0e0e0 !important;
+        }
+        body.dark-mode .container {
+            background-color: #1e1e1e !important;
+            box-shadow: 0px 5px 20px rgba(0,0,0,0.5) !important;
+        }
+        
+        /* 1. GELAPKAN TABEL STATISTIK */
+        body.dark-mode table, 
+        body.dark-mode th, 
+        body.dark-mode td {
+            background-color: #242424 !important; /* Ubah latar tabel jadi gelap */
+            border-color: #444 !important;
+            color: #fff !important; /* Pastikan teks di tabel jadi putih */
+        }
+
+        /* 2. GELAPKAN KOTAK PUTIH & LINDUNGI BAR WARNA (FINAL FIX) */
+        /* Sapu bersih background putih, KECUALI untuk bar skor */
+        body.dark-mode .left-panel div:not(.category-bar):not(.main-bar-fill) {
+            background-color: transparent !important;
+        }
+        
+        /* Warnai kotak Foto dan kotak Skor Akhir jadi abu-abu elegan */
+        body.dark-mode .left-panel > div:first-child,
+        body.dark-mode .left-panel > div:nth-child(2) {
+            background-color: #242424 !important;
+            color: #fff !important;
+            border-radius: 8px !important; /* Biar ujungnya mulus */
+        }
+
+        /* 3. PERBAIKAN WARNA BAR & TEKS LAINNYA */
+        body.dark-mode .bar-wrapper {
+            background-color: #444 !important; /* Bar abu-abu jadi lebih gelap */
+        }
+        body.dark-mode h2, 
+        body.dark-mode .category-title, 
+        body.dark-mode .right-title {
+            color: #fff !important;
+            border-bottom-color: #555 !important;
+        }
+        body.dark-mode p#kategoriTeks {
+            color: #bbb !important; /* Teks 'MENUNGGU INPUT' jadi abu-abu terang */
+        }
+
+        /* --- PERBAIKAN KHUSUS KOTAK SKOR DI MODE GELAP --- */
+        body.dark-mode .score-box {
+            background-color: #2a2a2a !important; /* Kasih warna abu-abu gelap biar misah dari background */
+            border: 1px solid #666 !important;    /* Munculkan lagi garis pinggirnya! */
+            min-width: 160px !important;          /* Kunci mati ukurannya */
+        }
+
+        /* --- DESAIN MENU LIPAT (ACCORDION) BAWAH --- */
+        .faq-section {
+            margin-top: 40px;
+            border-top: 2px dashed #ccc;
+            padding-top: 25px;
+            width: 100%;
+        }
+        .faq-section h3 {
+            margin-bottom: 15px;
+            font-size: 20px;
+            color: #333;
+        }
+        details {
+            background-color: #fdfdfd;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            overflow: hidden; /* Cegah isi keluar dari batas lengkungan */
+            transition: all 0.3s ease;
+        }
+        details:hover {
+            border-color: #999;
+        }
+        summary {
+            font-weight: bold;
+            font-size: 16px;
+            outline: none;
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #222;
+            padding: 15px 18px; /* Pindahkan padding ke sini biar kotaknya full bisa diklik! */
+            cursor: pointer;
+            user-select: none; /* Mencegah teks terblokir warna biru kalau diklik 2x */
+        }
+        summary::-webkit-details-marker {
+            display: none;
+        }
+        summary::after {
+            content: '▼';
+            font-size: 12px;
+            color: #777;
+            transition: transform 0.3s;
+        }
+        details[open] summary::after {
+            transform: rotate(180deg);
+        }
+        details p {
+            margin: 0;
+            padding: 0 18px 15px 18px; /* Atur ulang jarak paragraf */
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #555;
+        }
+
+        /* --- MODE GELAP UNTUK MENU LIPAT --- */
+        body.dark-mode .faq-section { border-top-color: #555; }
+        body.dark-mode .faq-section h3 { color: #fff; }
+        body.dark-mode details {
+            background-color: #2a2a2a;
+            border-color: #444;
+        }
+        body.dark-mode details:hover { border-color: #666; }
+        body.dark-mode summary { color: #eee; }
+        body.dark-mode details p {
+            border-top-color: #444;
+            color: #bbb;
+        }
+
+        /* --- EFEK LOADING (PULSE) STANDAR UI/UX --- */
+        @keyframes kedapKedip {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        .sedang-loading {
+            animation: kedapKedip 1.5s ease-in-out infinite;
+            color: #ff9800; /* Berubah warna jadi oranye biar makin kentara */
+            font-weight: bold;
+            font-style: italic;
+        }
+
+        /* Biar aman di mode gelap */
+        body.dark-mode .sedang-loading {
+            color: #ffb74d; 
+        }
+    </style>
+</head>
+<body>
+    <!-- TOMBOL TEMA MELAYANG -->
+    <button id="btnTema" style="position: absolute; top: 15px; right: 20px; padding: 10px 20px; border-radius: 25px; border: none; background: #333; color: white; cursor: pointer; font-weight: bold; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: 0.3s;">
+        🌙 Mode Gelap
+    </button>
+
+<div class="container">
+    <div class="header-title">LAPORAN ANALISIS ESTETIKA WAJAH</div>
+
+    <div class="main-content">
+        <!-- Panel Kiri -->
+        <div class="left-panel">
+            <div class="top-left">
+                <div class="image-container">
+                    <div class="image-box">
+                        <img id="previewImage" src="data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22150%22%20height%3D%22150%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22%23ccc%22%3E%3Cpath%20d%3D%22M21%2019V5c0-1.1-.9-2-2-2H5c-1.1%200-2%20.9-2%202v14c0%201.1.9%202%202%202h14c1.1%200%202-.9%202-2zM8.5%2013.5l2.5%203.01L14.5%2012l4.5%206H5l3.5-4.5z%22%2F%3E%3C%2Fsvg%3E" alt="Referensi Visual">
+                        <video id="cameraStream" autoplay playsinline></video>
+                    </div>
+                    <p>REFERENSI VISUAL</p>
+                    
+                    <div class="btn-group">
+                        <input type="file" id="fileInput" accept="image/*" style="display:none;">
+                        <button class="btn" onclick="document.getElementById('fileInput').click()">📁 Buka Galeri</button>
+                        <button class="btn" id="startCameraBtn" onclick="startCamera()">📷 Buka Kamera</button>
+                        <button class="btn btn-red" id="captureBtn" onclick="captureImage()">🔴 Jepret Foto</button>
+                    </div>
+                </div>
+
+                <div class="score-box">
+                    <h2>SKOR AKHIR: <span>0.0</span> / 10</h2>
+                    <div class="main-bar-bg">
+                        <div class="main-bar-fill" style="width: 0%;"></div>
+                    </div>
+                    <p id="kategoriTeks">KATEGORI: MENUNGGU INPUT...</p>
+                </div>
+            </div>
+
+            <div class="category-title">SKOR KATEGORI</div>
+            
+            <div class="bar-row"><div class="bar-label" id="labelSimetri">Simetri Wajah</div><div class="bar-wrapper"><div class="category-bar" id="barSimetri"></div></div></div>
+            <div class="bar-row"><div class="bar-label" id="labelProporsi">Proporsi Wajah</div><div class="bar-wrapper"><div class="category-bar" id="barProporsi"></div></div></div>
+            <div class="bar-row"><div class="bar-label" id="labelMata">Mata</div><div class="bar-wrapper"><div class="category-bar" id="barMata"></div></div></div>
+            <div class="bar-row"><div class="bar-label" id="labelHidung">Bentuk Hidung</div><div class="bar-wrapper"><div class="category-bar" id="barHidung"></div></div></div>
+            <div class="bar-row"><div class="bar-label" id="labelBibir">Bentuk Bibir</div><div class="bar-wrapper"><div class="category-bar" id="barBibir"></div></div></div>
+            <div class="bar-row"><div class="bar-label" id="labelRahang">Garis Rahang</div><div class="bar-wrapper"><div class="category-bar" id="barRahang"></div></div></div>
+            <div class="bar-row"><div class="bar-label" id="labelKulit">Kualitas Kulit</div><div class="bar-wrapper"><div class="category-bar" id="barKulit"></div></div></div>
+            <div class="bar-row"><div class="bar-label" id="labelHarmoni">Harmoni Keseluruhan</div><div class="bar-wrapper"><div class="category-bar" id="barHarmoni"></div></div></div>
+        </div>
+
+        <!-- Panel Kanan -->
+        <div class="right-panel">
+            <div class="right-title">ANALISIS OBJEKTIF</div>
+            <!-- Tambahkan ID objektifList di sini -->
+            <ul class="analysis-list" id="objektifList">
+                <li><strong>Status:</strong> Menunggu input gambar untuk dianalisis...</li>
+                <li>Sistem akan mendeteksi titik landmark wajah.</li>
+                <li>Sistem akan mengukur jarak antar komponen wajah.</li>
+            </ul>
+
+            <div class="right-title">RINGKASAN STATISTIK</div>
+            <table>
+                <tr>
+                    <!-- Tambahkan ID fiturKuat di sini -->
+                    <td colspan="2"><strong>FITUR TERKUAT:</strong> <span id="fiturKuat">Menunggu Proses...</span></td>
+                </tr>
+                <tr>
+                    <!-- Tambahkan ID fiturLemah di sini -->
+                    <td colspan="2"><strong>FITUR TERLEMAH:</strong> <span id="fiturLemah">Menunggu Proses...</span></td>
+                </tr>
+                <tr>
+                    <!-- Tambahkan ID kesanDominan di sini -->
+                    <td colspan="2"><strong>KESAN DOMINAN:</strong> <span id="kesanDominan">Menunggu Proses...</span></td>
+                </tr>
+                <tr>
+                    <!-- Tambahkan ID tingkatKeseimbangan di sini -->
+                    <td><strong>TINGKAT KESEIMBANGAN STRUKTURAL:</strong> <span id="tingkatKeseimbangan" style="font-weight:bold;">-</span></td>
+                    <td style="width: 35%;" class="legend">
+                        <span class="red">Merah:</span> Sangat Rendah<br>
+                        <span class="orange">Oranye:</span> Menengah<br>
+                        <span class="green">Hijau:</span> Sangat Baik
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+        <div class="faq-section">
+            <h3>Informasi & Bantuan</h3>
+            
+            <details>
+                <summary>Bagaimana cara AI ini bekerja?</summary>
+                <p>Sistem AI ini memindai titik landmark (titik kunci) pada wajah Anda menggunakan teknologi Computer Vision, kemudian mengukurnya berdasarkan rasio emas (Golden Ratio) dan simetri untuk menghasilkan analisis objektif.</p>
+            </details>
+
+            <details>
+                <summary>Apakah foto saya disimpan di server?</summary>
+                <p>Tentu saja tidak! Proses analisis dilakukan secara instan. Foto yang Anda unggah hanya diproses di dalam memori sementara dan akan langsung terhapus begitu proses analisis selesai.</p>
+            </details>
+
+            <details>
+                <summary>Kenapa skor saya bisa berubah-ubah?</summary>
+                <p>Skor sangat dipengaruhi oleh kualitas foto, pencahayaan, sudut pengambilan gambar (angle), dan ekspresi wajah Anda.</p>
+            </details>
+            <details>
+                <summary>Tentang Creator</summary>
+                <p>
+                    Website ini dikembangkan oleh Alfonsius Pernandes Roby, mahasiswa Universitas Tanjungpura (UNTAN). Kreator sangat mengharapkan kritik dan saran yang membangun demi perbaikan website ini di masa yang akan datang.
+                    <br><br>
+                    Follow Akun Instagramku: @alfonzhs.robb
+                </p>
+            </details>
+        </div>
+</div>
+
+<script>
+    const video = document.getElementById('cameraStream');
+    const img = document.getElementById('previewImage');
+    const fileInput = document.getElementById('fileInput');
+    const startCameraBtn = document.getElementById('startCameraBtn');
+    const captureBtn = document.getElementById('captureBtn');
+    
+    // Elemen Panel Kiri
+    const finalScoreText = document.querySelector('.score-box h2 span');
+    const finalScoreBar = document.querySelector('.main-bar-fill');
+    const categoryBars = document.querySelectorAll('.bar-fill');
+    const kategoriTeks = document.getElementById('kategoriTeks');
+
+    // Elemen Panel Kanan
+    const objektifList = document.getElementById('objektifList');
+    const fiturKuat = document.getElementById('fiturKuat');
+    const fiturLemah = document.getElementById('fiturLemah');
+    const kesanDominan = document.getElementById('kesanDominan');
+    const tingkatKeseimbangan = document.getElementById('tingkatKeseimbangan');
+    
+    let stream = null;
+
+    fileInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            // Gunakan FileReader untuk mengubah gambar galeri menjadi Base64
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                img.src = e.target.result; // Ini sudah format Base64 yang disukai Python
+                img.style.display = 'block';
+                video.style.display = 'none';
+                captureBtn.style.display = 'none';
+                startCameraBtn.style.display = 'block';
+                stopCamera();
+                
+                // Panggil analisis setelah gambar benar-benar selesai dibaca
+                analyzeRealData(); 
+            };
+            
+            // Proses membaca filenya
+            reader.readAsDataURL(file);
+        }
+    });
+
+    async function startCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            video.srcObject = stream;
+            img.style.display = 'none';
+            video.style.display = 'block';
+            startCameraBtn.style.display = 'none';
+            captureBtn.style.display = 'block';
+        } catch (err) {
+            alert("Kamera tidak dapat diakses.");
+        }
+    }
+
+    function captureImage() {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        img.src = canvas.toDataURL('image/png');
+        img.style.display = 'block';
+        video.style.display = 'none';
+        captureBtn.style.display = 'none';
+        startCameraBtn.style.display = 'block';
+        stopCamera();
+        
+        // PANGGIL FUNGSI BARU DI SINI
+        analyzeRealData();
+    }
+
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+    }
+
+   // --- INI FUNGSI BARU YANG KAMU TANYAKAN ---
+    async function analyzeRealData() {
+        // Tunggu sebentar untuk memastikan gambar dari galeri sudah termuat di elemen <img>
+        await new Promise(resolve => setTimeout(resolve, 500)); 
+
+        const base64Image = img.src;
+        if (!base64Image || base64Image.length < 100) {
+            alert("Gambar belum siap atau kosong, coba pilih ulang!");
+            return;
+        }
+
+        // Ubah tampilan jadi Mode Loading
+        finalScoreText.innerText = "...";
+        finalScoreBar.style.width = "0%";
+        finalScoreBar.style.backgroundColor = "#999";
+        kategoriTeks.innerText = "MENGANALISIS GAMBAR...";
+        // --- NYALAKAN EFEK LOADING ---
+        kategoriTeks.classList.add('sedang-loading');
+        
+        fiturKuat.classList.add('sedang-loading');
+        fiturLemah.classList.add('sedang-loading');
+        kesanDominan.classList.add('sedang-loading');
+        
+        fiturKuat.innerText = "Menunggu Proses...";
+        fiturLemah.innerText = "Menunggu Proses...";
+        kesanDominan.innerText = "Menunggu Proses...";
+        categoryBars.forEach(bar => { bar.style.width = "0%"; bar.style.backgroundColor = "#999"; });
+        
+        objektifList.innerHTML = `<li class="sedang-loading"><strong>Memproses:</strong> Memproses analisis objektif...</li>`;
+
+        try {
+            // Mengirim data ke Python
+            const response = await fetch('/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: base64Image })
+            });
+            
+            const data = await response.json();
+
+            if (data.status === "success") {
+                // --- MATIKAN EFEK LOADING ---
+            kategoriTeks.classList.remove('sedang-loading');
+            fiturKuat.classList.remove('sedang-loading');
+            fiturLemah.classList.remove('sedang-loading');
+            kesanDominan.classList.remove('sedang-loading');
+                const skorAsli = data.skor;
+                finalScoreText.innerText = skorAsli;
+                finalScoreBar.style.width = (skorAsli * 10) + "%";
+
+                // Menentukan warna utama berdasarkan skor
+                let warnaUtama = "";
+                if(skorAsli < 6) warnaUtama = "#d32f2f"; // Merah
+                else if(skorAsli < 8) warnaUtama = "#f57c00"; // Oranye
+                else warnaUtama = "#388e3c"; // Hijau
+
+                finalScoreBar.style.backgroundColor = warnaUtama;
+                finalScoreText.style.color = warnaUtama;
+
+                // --- 1. UPDATE BAR KATEGORI (DIJAMIN MUNCUL WARNANYA) ---
+                const kat = data.kategori;
+                const updateBar = (idLabel, idBar, namaAsli, nilai) => {
+                    document.getElementById(idLabel).innerText = `${namaAsli} (${nilai})`;
+                    let barEl = document.getElementById(idBar);
+                    
+                    // Kita paksa tinggi dan transisinya biar warnanya pasti keluar!
+                    barEl.style.height = "100%"; 
+                    barEl.style.borderRadius = "inherit";
+                    barEl.style.width = (nilai * 10) + "%";
+                    
+                    if(nilai < 5) barEl.style.backgroundColor = "#d32f2f"; // Merah
+                    else if(nilai < 7.5) barEl.style.backgroundColor = "#f57c00"; // Oranye
+                    else barEl.style.backgroundColor = "#388e3c"; // Hijau
+                };
+
+                updateBar("labelSimetri", "barSimetri", "Simetri Wajah", kat.simetri);
+                updateBar("labelProporsi", "barProporsi", "Proporsi Wajah", kat.proporsi);
+                updateBar("labelMata", "barMata", "Mata", kat.mata);
+                updateBar("labelHidung", "barHidung", "Bentuk Hidung", kat.hidung);
+                updateBar("labelBibir", "barBibir", "Bentuk Bibir", kat.bibir);
+                updateBar("labelRahang", "barRahang", "Garis Rahang", kat.rahang);
+                updateBar("labelKulit", "barKulit", "Kualitas Kulit", kat.kulit);
+                updateBar("labelHarmoni", "barHarmoni", "Harmoni Keseluruhan", kat.harmoni);
+
+                // --- 2. UPDATE LIST ANALISIS OBJEKTIF ---
+                objektifList.innerHTML = "";
+                data.analisis_teks.forEach(teks => {
+                    objektifList.innerHTML += `<li>${teks}</li>`;
+                });
+
+                // --- 3. LOGIKA CERDAS: RINGKASAN STATISTIK DINAMIS ---
+                // AI akan mencari sendiri mana nilai tertinggi dan terendah
+                const namaKategori = {
+                    simetri: "Simetri Wajah", proporsi: "Proporsi Wajah", mata: "Mata",
+                    hidung: "Bentuk Hidung", bibir: "Bentuk Bibir", rahang: "Garis Rahang", kulit: "Kualitas Kulit"
+                };
+
+                let maxKat = "simetri";
+                let minKat = "simetri";
+                for (let key in namaKategori) {
+                    if (kat[key] > kat[maxKat]) maxKat = key;
+                    if (kat[key] < kat[minKat]) minKat = key;
+                }
+
+                let teksKuat = `${namaKategori[maxKat]} (Struktur Optimal)`;
+                let teksLemah = `${namaKategori[minKat]} (Perlu Penyesuaian)`;
+                let teksKesan = "";
+                let teksTingkat = "";
+
+                // Sesuaikan Kesan Dominan dengan Skor Akhir
+                if (skorAsli >= 8.0) {
+                    teksKesan = "Sangat Harmonis & Teratur";
+                    teksTingkat = "TINGGI";
+                    if (minKat === "simetri") teksLemah = "Simetri Wajah (Asimetri Alami)";
+                } else if (skorAsli >= 6.0) {
+                    teksKesan = "Kesan Standar & Wajar";
+                    teksTingkat = "MENENGAH";
+                } else {
+                    teksKesan = "Distorsi Ekspresi / Asimetri Kuat";
+                    teksTingkat = "RENDAH";
+                    teksKuat = `${namaKategori[maxKat]} (Potensi Tersembunyi)`;
+                    teksLemah = `${namaKategori[minKat]} (Karena Distorsi Total)`;
+                }
+
+                // Tembakkan ke HTML! (Pastikan ID-nya sesuai dengan yang ada di atas kodemu)
+                document.getElementById('fiturKuat').innerText = teksKuat;
+                document.getElementById('fiturLemah').innerText = teksLemah;
+                document.getElementById('kesanDominan').innerText = teksKesan;
+                document.getElementById('tingkatKeseimbangan').innerText = teksTingkat;
+                
+                // Warnai Tingkat Keseimbangan
+                const tingkatEl = document.getElementById('tingkatKeseimbangan');
+                if(teksTingkat === "TINGGI") tingkatEl.style.color = "#388e3c";
+                else if(teksTingkat === "MENENGAH") tingkatEl.style.color = "#f57c00";
+                else tingkatEl.style.color = "#d32f2f";
+                
+                kategoriTeks.innerText = "ANALISIS SELESAI";
+            
+            } else {
+                // Jika wajah tidak ketemu atau ada error dari Python
+                alert("Gagal: " + data.message);
+                kategoriTeks.innerText = "WAJAH TIDAK DITEMUKAN";
+                objektifList.innerHTML = `<li>${data.message}</li>`;
+            }
+
+        } catch (error) {
+            console.error("Error:", error);
+            alert("Gagal terhubung ke Server. Pastikan app.py sudah jalan.");
+        }
+    }
+
+    // --- LOGIKA TOMBOL TEMA GELAP/TERANG (DENGAN MEMORI BROWSER) ---
+    const btnTema = document.getElementById('btnTema');
+
+    // 1. CEK MEMORI BROWSER SAAT HALAMAN PERTAMA KALI DIMUAT
+    if (localStorage.getItem('tema_web') === 'gelap') {
+        document.body.classList.add('dark-mode');
+        btnTema.innerText = '☀️ Mode Terang';
+        btnTema.style.background = '#f39c12';
+        btnTema.style.color = '#fff';
+    }
+
+    // 2. FUNGSI TOMBOL KLIK YANG DISIMPAN KE MEMORI
+    btnTema.addEventListener('click', function() {
+        document.body.classList.toggle('dark-mode');
+        
+        if (document.body.classList.contains('dark-mode')) {
+            // Jika mode gelap aktif, simpan ke memori dan ubah tombol
+            localStorage.setItem('tema_web', 'gelap'); 
+            btnTema.innerText = '☀️ Mode Terang';
+            btnTema.style.background = '#f39c12';
+            btnTema.style.color = '#fff';
+        } else {
+            // Jika mode terang aktif, simpan ke memori dan ubah tombol
+            localStorage.setItem('tema_web', 'terang'); 
+            btnTema.innerText = '🌙 Mode Gelap';
+            btnTema.style.background = '#333';
+            btnTema.style.color = '#fff';
+        }
+    });
+</script>
+
+</body>
+</html>
