@@ -291,6 +291,21 @@
         body.dark-mode .sedang-loading {
             color: #ffb74d; 
         }
+        @media (max-width: 768px) {
+    .main-content {
+        flex-direction: column; /* Ini yang bikin susunannya jadi turun ke bawah */
+    }
+    .top-left {
+        flex-direction: column;
+        align-items: center;
+    }
+    .container {
+        padding: 15px; /* Biar pinggirannya gak terlalu lebar makan tempat di HP */
+    }
+    body {
+        padding: 10px;
+    }
+}
     </style>
 </head>
 <body>
