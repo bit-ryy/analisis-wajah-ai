@@ -96,7 +96,7 @@ def analyze_face():
 
         # GANTI JADI BEGINI JALUR AJAIBNYA (Pakai gemini-1.5-flash yang super stabil)
         response = client.models.generate_content(
-            model='gemini-1.5-flash', 
+            model='gemini-flash-latest', 
             contents=[prompt, img]
         )
         
