@@ -514,6 +514,13 @@
    // --- INI FUNGSI BARU YANG KAMU TANYAKAN ---
     async function analyzeRealData() {
         // Tunggu sebentar untuk memastikan gambar dari galeri sudah termuat di elemen <img>
+        // --- 1. PASANG GEMBOK TOMBOL (Anti-Spam) ---
+    const tombolUpload = document.querySelectorAll('.btn-group button, .camera-controls button, #startCameraBtn, #captureBtn');
+    tombolUpload.forEach(btn => {
+        btn.disabled = true;
+        btn.style.opacity = "0.5";
+        btn.style.cursor = "not-allowed";
+    });
         await new Promise(resolve => setTimeout(resolve, 500)); 
 
         const base64Image = img.src;
@@ -660,6 +667,14 @@
             console.error("Error:", error);
             alert("Gagal terhubung ke Server. Pastikan app.py sudah jalan.");
         }
+        // --- 2. BUKA GEMBOK OTOMATIS (Setelah 20 Detik) ---
+    setTimeout(() => {
+        tombolUpload.forEach(btn => {
+            btn.disabled = false;
+            btn.style.opacity = "1";
+            btn.style.cursor = "pointer";
+        });
+    }, 20000); // Jeda 20 detik biar API Gemini nafas dulu
     }
 
     // --- LOGIKA TOMBOL TEMA GELAP/TERANG (DENGAN MEMORI BROWSER) ---
