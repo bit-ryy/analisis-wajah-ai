@@ -1,6 +1,6 @@
 import os
 import requests
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -15,7 +15,7 @@ headers = {"Authorization": f"Bearer {HF_API_KEY}"}
 
 @app.route('/')
 def home():
-    return "Server AI Hugging Face Aktif dan Siap Merating Muka!"
+    return render_template('deteksi muka.html')
 
 @app.route('/analyze', methods=['POST'])
 def analyze_image():
