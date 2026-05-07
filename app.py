@@ -2,6 +2,7 @@ import os
 import json
 import base64
 import io
+import re
 from dotenv import load_dotenv
 
 load_dotenv() # Ini buat ngebaca file .env tadi
@@ -13,13 +14,15 @@ from flask_cors import CORS
 from google import genai 
 
 app = Flask(__name__)
+CORS(app) # Pindahin ke sini biar Flask nggak bingung
+
 @app.route('/')
 def home():
     return render_template('deteksi muka.html')
-CORS(app)
 
 # INI CARA INISIALISASI VERSI BARU
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+api_key = os.environ.get("GEMINI_API_KEY")
+client = genai.Client(api_key=api_key)
 
 @app.route('/analyze', methods=['POST'])
 def analyze_face():
@@ -27,12 +30,18 @@ def analyze_face():
         data = request.json
         image_raw = data.get('image', '')
         
-        image_data = image_raw.split(",")[1]
+        # Penanganan aman kalau format base64 beda-beda
+        if ',' in image_raw:
+            image_data = image_raw.split(",")[1]
+        else:
+            image_data = image_raw
+            
         image_bytes = base64.b64decode(image_data)
         img = Image.open(io.BytesIO(image_bytes))
 
         print("Mengirim foto ke Cloud AI Generasi Baru...")
 
+        # PROMPT MASTERPIECE KAMU (100% UTUH)
         prompt = """
         Anda adalah sistem AI penganalisis citra visual tingkat lanjut dengan kemampuan identifikasi multi-domain.
         
@@ -70,7 +79,6 @@ def analyze_face():
 
         WAJIB BERIKAN OUTPUT HANYA DALAM FORMAT JSON SAJA.
         {
-
             "skor_akhir": 9.5,
             "kategori": {
                 "simetri": 8.0, "proporsi": 7.5, "mata": 8.2, "hidung": 8.1, "bibir": 7.9, "rahang": 8.3, "kulit": 8.6, "harmoni": 8.5
@@ -86,16 +94,26 @@ def analyze_face():
         }
         """
 
-        # GANTI JADI BEGINI JALUR AJAIBNYA:
+        # GANTI JADI BEGINI JALUR AJAIBNYA (Pakai gemini-1.5-flash yang super stabil)
         response = client.models.generate_content(
-            model='gemini-flash-latest', 
+            model='gemini-1.5-flash', 
             contents=[prompt, img]
         )
         
-        response_text = response.text.replace("```json", "").replace("```", "").strip()
-        hasil_ai = json.loads(response_text)
+        # --- JURUS SAPU BERSIH JSON (Anti-Crash) ---
+        response_text = response.text
+        print(f"Mentahan dari Gemini: {response_text}") # Biar gampang dilacak di Vercel
+        
+        # Cari paksa blok JSON di dalam teks pakai Regex
+        match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if match:
+            clean_json = match.group(0)
+        else:
+            clean_json = response_text.replace("```json", "").replace("```", "").strip()
+            
+        hasil_ai = json.loads(clean_json)
 
-        print(f"BERHASIL! Skor AI: {hasil_ai['skor_akhir']}")
+        print(f"BERHASIL! Skor AI: {hasil_ai.get('skor_akhir', 'N/A')}")
 
         return jsonify({
             "status": "success",
