@@ -125,7 +125,7 @@ def analyze_face():
     # NAH INI BAGIAN YANG TADI KEPOTONG
     except Exception as e:
         print(f"ERROR: {str(e)}")
-        return jsonify({"status": "error", "message": "Gagal diproses AI Cloud. Pastikan koneksi internet lancar dan foto jelas."})
+        return jsonify({"status": "error", "message": str(e)})
 
 # INI JUGA PENTING BIAR SERVER FLASK NYALA
 if __name__ == '__main__':
